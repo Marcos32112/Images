@@ -1,0 +1,11 @@
+node_modules/
+.idea/
+.vscode/
+**/.next/
+**/dist/
+**/build/
+**/target/
+imageApi/data/
+.env
+.env.*
+!.env.example

@@ -1,0 +1,25 @@
+{
+  "name": "image",
+  "version": "1.0.0",
+  "description": "Prompt Desenvolvido em Sala de Aula para exemplificar uso prático das Tecnologias Spring React com PostgreSQL",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Andr3wsElia/image.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Andr3wsElia/image/issues"
+  },
+  "homepage": "https://github.com/Andr3wsElia/image#readme",
+  "devDependencies": {
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
+  }
+}
