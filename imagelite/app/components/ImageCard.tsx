@@ -1,49 +1,127 @@
+import React from 'react'
+
 interface ImageCardProps {
-  imageUrl?: string;
-  imageName?: string;
-  imageSize?: string;
-  uploadDate?: string;
-  extension?: string;
-} 
-
-export  const ImageCard: React.FC<ImageCardProps> = ({imageName, imageUrl, imageSize, uploadDate, extension}) => {
-  function downloadImage() {
-    window.open(imageUrl, '_blank');
+ imageId?: string
+ imageUrl?: string
+ imageName?: string
+ imageSize?: string
+ uploadDate?: string
+ extension?: string
+ tags?: string[]
+ onDelete?: (id?: string) => void
 }
 
-  return(
-    <div className="card relative bg-white rounded-md shadow-md transition-all ease-in-out duration-300 hover:shadow-xl hover:-translate-y-1"> 
-        <img onClick={downloadImage}src={imageUrl} className="h-56 w-full object-cover rounded-t-md" alt="Thumbnail" />
-        <div className="card-body p-4">
-            <h1 className="text-xl font-semibold mb-2 text-gray-600">{imageName}</h1>
-            <p className="text-xl font-semibold mb-2 text-gray-600">{formatBytes(Number(imageSize))}</p>
-            <p className="text-xl font-semibold mb-2 text-gray-600">{uploadDate}</p>
-            <p className="text-xl font-semibold mb-2 text-gray-600">{extension}</p>
-        </div>
-    </div>
-  )
-  function formatBytes(bytes: number = 0, decimals: number = 2): string {
-    if (bytes === 0) return '0 Bytes';
+export const ImageCard: React.FC<ImageCardProps> = ({
+ imageId,
+ imageUrl,
+ imageName,
+ imageSize,
+ uploadDate,
+ extension,
+ tags = [],
+ onDelete,
+}) => {
+ function downloadImage() {
+   if (!imageUrl) return
 
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+   try {
+     const link = document.createElement('a')
+     link.href = imageUrl
+     link.rel = 'noopener'
+     link.target = '_blank'
 
-    const absBytes = Math.abs(bytes);
+     const isLocalOrSameOrigin = imageUrl.startsWith(window.location.origin) || imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')
 
-    // Evita estourar o tamanho do array sizes
-    const i = Math.min(
-        Math.floor(Math.log(absBytes) / Math.log(k)),
-        sizes.length - 1
-    );
+     if (isLocalOrSameOrigin) {
+       link.download = imageName || 'download-image'
+     }
 
-    const formattedValue = parseFloat((bytes / Math.pow(k, i)).toFixed(dm));
+     document.body.appendChild(link)
+     link.click()
+     document.body.removeChild(link)
+   } catch (error) {
+     console.error('Erro ao iniciar o download da imagem:', error)
+     window.open(imageUrl, '_blank')
+   }
+ }
 
-    return `${formattedValue} ${sizes[i]}`;
+ function handleDelete(event: React.MouseEvent<HTMLButtonElement>) {
+   event.stopPropagation()
+
+   const confirmed = window.confirm(`Deseja excluir a imagem "${imageName || 'selecionada'}"?`)
+   if (!confirmed) return
+
+   onDelete?.(imageId)
+ }
+
+ return (
+   <article className="image-card">
+     <div className="cursor-pointer" onClick={downloadImage} role="button" tabIndex={0} onKeyDown={(event) => event.key === 'Enter' && downloadImage()} aria-label={`Baixar ${imageName || 'imagem'}`}>
+       <div className="image-card-media">
+         <img
+           src={imageUrl}
+           alt={imageName || 'Thumbnail'}
+         />
+         <div className="image-card-overlay" />
+
+         {extension && (
+           <span className="image-badge">
+             {extension}
+           </span>
+         )}
+
+         {onDelete && (
+           <button
+             type="button"
+             onClick={handleDelete}
+               className="delete-image"
+             aria-label="Apagar imagem"
+           >
+               Excluir
+           </button>
+         )}
+       </div>
+
+         <div className="image-card-body">
+           <h2 className="image-card-title">
+           {imageName || 'Sem título'}
+           </h2>
+
+         {tags.length > 0 && (
+             <div className="image-card-tags">
+             {tags.map((tag) => (
+               <span
+                 key={tag}
+                   className="image-card-tag"
+               >
+                 {tag}
+               </span>
+             ))}
+           </div>
+         )}
+
+         <div className="image-card-meta">
+           <span>{uploadDate || 'Data desconhecida'}</span>
+           <span className="image-card-size">
+             {formatBytes(Number(imageSize))}
+           </span>
+         </div>
+       </div>
+     </div>
+   </article>
+ )
 }
 
-// Exemplos de uso:
-console.log(formatBytes(1024));       // "1 KB"
-console.log(formatBytes(1234567, 3)); // "1.177 MB"
-console.log(formatBytes(1099511627776)); // "1 TB"
+function formatBytes(bytes: number = 0, decimals: number = 2): string {
+ if (bytes === 0) return '0 Bytes'
+
+ const k = 1024
+ const dm = decimals < 0 ? 0 : decimals
+ const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+ const absBytes = Math.abs(bytes)
+
+ const i = Math.min(Math.floor(Math.log(absBytes) / Math.log(k)), sizes.length - 1)
+ const formattedValue = parseFloat((bytes / Math.pow(k, i)).toFixed(dm))
+
+ return `${formattedValue} ${sizes[i]}`
 }

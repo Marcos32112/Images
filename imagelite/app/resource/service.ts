@@ -17,8 +17,6 @@ export class ImageService {
 
     const result = await response.json();
 
-    console.log('Resposta do backend:', result);
-
     if (!Array.isArray(result)) {
       throw new Error('O backend não retornou uma lista de imagens');
     }
@@ -41,7 +39,21 @@ export class ImageService {
       `Falha ao enviar imagem: ${response.status} ${response.statusText}`,
     );
   }
+  
 }
+  async deletar(id?: string): Promise<void> {
+    if (!id) {
+      throw new Error('Não foi possível identificar a imagem para remover.')
+    }
+
+    const response = await fetch(`${this.baseURL}/${id}`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Falha ao apagar imagem: ${response.status} ${response.statusText}`)
+    }
+  }
 }
 
 export const useImageService = () => new ImageService();

@@ -19,28 +19,32 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class Image {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
-    @Column
-    private String name;
-    @Column
-    private Long size;
-    @Column
-    @Enumerated(EnumType.STRING)
-    private ImageExtension extension;
-    @Column
-    @CreatedDate
-    private LocalDateTime uploadDate;
-    @Column
-    private String tags;
 
-    @Column(name = "file",columnDefinition = "LONGBLOB")
-    @Lob
-    private byte[] file;
 
-    public String getFileName(){
-        return getName().concat(".").concat(getExtension().name());
+        @Id
+        @GeneratedValue(strategy = GenerationType.UUID)
+        private String id;
+        @Column
+        private String name;
+        @Column
+        private Long size;
+        @Column
+        @Enumerated(EnumType.STRING)
+        private ImageExtension extension;
+        @Column
+        @CreatedDate
+        private LocalDateTime uploadDate;
+        @Column
+        private String tags;
+
+        @Column(name = "file", columnDefinition="LONGBLOB")
+        @Lob
+        private byte[] file;
+
+        public String getFileName(){
+                 return getName().concat(".").concat(getExtension().name());
+        }
+
     }
-}
+
 

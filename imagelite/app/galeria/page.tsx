@@ -1,85 +1,134 @@
-'use client'
+'use client';
 
-//import { Template } from '../components/Template';
-//import { ImageCard } from '../components/Image';
-import { Template, ImageCard,  } from '@/components';
-import { ImageService, useImageService } from '@/resource/service';
-import { Image } from '@/resource/image'; 
-import { useState } from 'react';
+import { Template, ImageCard } from '@/components';
+import { ImageService } from '@/resource/service';
+import { Image } from '@/resource/image';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components';
-
-
-
-
 
 export default function Galeria() {
-  
-  const useService = useImageService()
-  const[images, setImages] = useState<Image[]>([])
-  const [query,setQuery] = useState<string>('')
-  const [extension, setExtension] = useState<string> ('')
+  const [imageService] = useState(() => new ImageService());
+  const [images, setImages] = useState<Image[]>([]);
+  const [query, setQuery] = useState('');
+  const [extension, setExtension] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  async function searchImages() {
-  try {
-    const result = await useService.buscar(query, extension);
-    setImages(result);
-    console.log(query, extension);
-  } catch (error) {
-    console.error('Erro ao buscar imagens:', error);
-    setImages([]);
+  useEffect(() => {
+    let active = true;
+
+    imageService.buscar()
+      .then((result) => {
+        if (active) setImages(result);
+      })
+      .catch((cause: unknown) => {
+        console.error('Erro ao carregar imagens:', cause);
+        if (active) setError('Não foi possível carregar as imagens. Confira a conexão com o servidor.');
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [imageService]);
+
+  async function searchImages(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const result = await imageService.buscar(query, extension);
+      setImages(result);
+    } catch (cause) {
+      console.error('Erro ao buscar imagens:', cause);
+      setError('Não foi possível buscar imagens. Confira a conexão com o servidor.');
+      setImages([]);
+    } finally {
+      setIsLoading(false);
+    }
   }
-}
+
+  async function deleteImage(id?: string) {
+    try {
+      await imageService.deletar(id);
+      setImages((currentImages) => currentImages.filter((image) => image.id !== id));
+    } catch (cause) {
+      console.error('Erro ao excluir imagem:', cause);
+      window.alert('Não foi possível excluir a imagem.');
+    }
+  }
 
   function renderImageCard(image: Image) {
     return (
-      <ImageCard key = {image.url}
-                 imageName = {image.name} 
-                 imageUrl = {image.url}
-                 imageSize = {image.size}
-                 uploadDate = {image.uploadDate}
-                 extension = {image.extension}
+      <ImageCard
+        key={image.id ?? image.url}
+        imageId={image.id}
+        imageName={image.name}
+        imageUrl={image.url}
+        imageSize={image.size}
+        uploadDate={image.uploadDate}
+        extension={image.extension}
+        onDelete={deleteImage}
       />
-    )
+    );
   }
 
-  function renderImageCards() {
+  function renderGalleryContent() {
+    if (isLoading && images.length === 0) return <p className="gallery-message">Carregando sua biblioteca...</p>;
+    if (error && images.length === 0) return <p className="gallery-message" role="alert">{error}</p>;
+    if (images.length === 0) return <p className="gallery-message">Nenhuma imagem encontrada. Ajuste os filtros ou adicione uma imagem.</p>;
     return images.map(renderImageCard);
   }
 
   return (
-   
-      <Template>
+    <Template>
+      <main className="gallery-main">
+        <div className="gallery-heading">
+          <div>
+            <p className="eyebrow">Arquivo visual / 01</p>
+            <h1>Galeria</h1>
+            <p>Encontre e organize suas imagens em um só lugar.</p>
+          </div>
+          <button className="action-link" type="button" onClick={() => router.push('/upload')}>
+            <span aria-hidden="true">+</span> Adicionar imagem
+          </button>
+        </div>
 
-        <section className="flex flex-col items-center justify-center my-5">
-            <div className="flex space-x-4">
-              <input type="text" 
-              onChange={(e) => setQuery(e.target.value)}
-              className="border px-4 py-2 rounded-lg text-White-900" placeholder="Buscar imagens..." />
-              <select onChange={(e) => setExtension(e.target.value)} className="border px-4 py-2 rounded-lg text-White-900">
-                <option value="">All formats</option>
-                <option value="JPG">JPG</option>
-                <option value="PNG">PNG</option>
-                <option value="JPEG">JPEG</option>
-                <option value="GIF">GIF</option>
-              </select>
-              <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded" onClick={searchImages}>Search </button>
-              <Button
-                  type="button"
-                  variant="danger"
-                  onClick={() => router.push('/upload')}
-                  >
-                  Add New
-              </Button>
-            </div>
-        </section>
+        <form className="gallery-controls" onSubmit={searchImages}>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Pesquisar por nome..."
+            aria-label="Pesquisar imagens por nome"
+          />
+          <select
+            value={extension}
+            onChange={(event) => setExtension(event.target.value)}
+            aria-label="Filtrar por formato"
+          >
+            <option value="">Todos os formatos</option>
+            <option value="JPG">JPG</option>
+            <option value="PNG">PNG</option>
+            <option value="JPEG">JPEG</option>
+            <option value="GIF">GIF</option>
+          </select>
+          <button type="submit" disabled={isLoading}>Buscar</button>
+        </form>
+        {(isLoading || error) && images.length > 0 && (
+          <p className="gallery-status" role={error ? 'alert' : 'status'}>
+            {error || 'Atualizando resultados...'}
+          </p>
+        )}
 
-        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
-            {renderImageCards()}
+        <section className="image-grid" aria-label="Imagens da galeria">
+          {renderGalleryContent()}
         </section>
-          
-      </Template>
-   
-  )
+      </main>
+    </Template>
+  );
 }
